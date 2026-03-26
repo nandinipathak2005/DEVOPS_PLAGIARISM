@@ -1,195 +1,165 @@
-// // // // // package com.project.controller;
+// // // package com.project.controller;
 
-// // // // // import java.io.IOException;
+// // // import com.project.model.PlagiarismResponse;
+// // // import com.project.service.FileService;
+// // // import com.project.service.JPlagService;
+// // // import org.springframework.http.ResponseEntity;
+// // // import org.springframework.web.bind.annotation.*;
+// // // import org.springframework.web.multipart.MultipartFile;
+// // // import java.io.File;
+// // // import java.util.*;
 
-// // // // // import org.springframework.web.bind.annotation.PostMapping;
-// // // // // import org.springframework.web.bind.annotation.RequestMapping;
-// // // // // import org.springframework.web.bind.annotation.RequestParam;
-// // // // // import org.springframework.web.bind.annotation.RestController;
-// // // // // import org.springframework.web.multipart.MultipartFile;
+// // // @RestController
+// // // @RequestMapping("/api/plagiarism")
+// // // @CrossOrigin(origins = "*")
+// // // public class PlagiarismController {
 
-// // // // // import com.project.service.PlagiarismService;
+// // //     private final FileService fileService;
+// // //     private final JPlagService jPlagService;
 
-// // // // // @RestController
-// // // // // @RequestMapping("/plagiarism")
-// // // // // public class PlagiarismController {
+// // //     public PlagiarismController(FileService fileService, JPlagService jPlagService) {
+// // //         this.fileService = fileService;
+// // //         this.jPlagService = jPlagService;
+// // //     }
 
-// // // // //     private final PlagiarismService plagiarismService;
+// // //     @PostMapping("/upload")
+// // //     public ResponseEntity<PlagiarismResponse> handleUpload(@RequestParam("file") MultipartFile file) {
+// // //         String jobId = "job_" + System.currentTimeMillis();
+// // //         try {
+// // //             File folder = fileService.extractZip(file, jobId);
+// // //             Map<String, Object> result = jPlagService.runJPlag(folder, jobId);
 
-// // // // //     public PlagiarismController(PlagiarismService plagiarismService) {
-// // // // //         this.plagiarismService = plagiarismService;
-// // // // //     }
-
-// // // // //     @PostMapping("/check")
-// // // // //     public String checkPlagiarism(
-// // // // //             @RequestParam("file1") MultipartFile file1,
-// // // // //             @RequestParam("file2") MultipartFile file2) throws IOException {
-
-// // // // //         String text1 = new String(file1.getBytes());
-// // // // //         String text2 = new String(file2.getBytes());
-
-// // // // //         double similarity = plagiarismService.calculateSimilarity(text1, text2);
-
-// // // // //         if(similarity > 0.7)
-// // // // //             return "Plagiarism detected. Similarity = " + similarity;
-
-// // // // //         return "No plagiarism. Similarity = " + similarity;
-// // // // //     }
-// // // // // }
-
-
-// // // // package com.project.controller;
-
-// // // // import java.io.IOException;
-
-// // // // import org.springframework.web.bind.annotation.GetMapping;
-// // // // import org.springframework.web.bind.annotation.PostMapping;
-// // // // import org.springframework.web.bind.annotation.RequestMapping;
-// // // // import org.springframework.web.bind.annotation.RequestParam;
-// // // // import org.springframework.web.bind.annotation.RestController;
-// // // // import org.springframework.web.multipart.MultipartFile;
-
-// // // // import com.project.service.PlagiarismService;
-
-// // // // @RestController
-// // // // @RequestMapping("/plagiarism")
-// // // // public class PlagiarismController {
-
-// // // //     private final PlagiarismService plagiarismService;
-
-// // // //     public PlagiarismController(PlagiarismService plagiarismService) {
-// // // //         this.plagiarismService = plagiarismService;
-// // // //     }
-
-// // // //     // Existing POST endpoint
-// // // //     @PostMapping("/check")
-// // // //     public String checkPlagiarism(
-// // // //             @RequestParam("file1") MultipartFile file1,
-// // // //             @RequestParam("file2") MultipartFile file2) throws IOException {
-
-// // // //         String text1 = new String(file1.getBytes());
-// // // //         String text2 = new String(file2.getBytes());
-
-// // // //         double similarity = plagiarismService.calculateSimilarity(text1, text2);
-
-// // // //         if(similarity > 0.7)
-// // // //             return "Plagiarism detected. Similarity = " + similarity;
-
-// // // //         return "No plagiarism. Similarity = " + similarity;
-// // // //     }
-
-// // // //     // NEW: GET test endpoint for quick browser check
-// // // //     @GetMapping("/check/test")
-// // // //     public String testPlagiarism() {
-// // // //         return "Plagiarism endpoint is alive. Use POST with files to test.";
-// // // //     }
-// // // // }
+// // //             return ResponseEntity.ok(new PlagiarismResponse(
+// // //                 jobId,
+// // //                 (Map<String, Double>) result.get("similarities"),
+// // //                 (List<String>) result.get("logs"),
+// // //                 "Success"
+// // //             ));
+// // //         } catch (Exception e) {
+// // //             return ResponseEntity.internalServerError().body(
+// // //                 new PlagiarismResponse(jobId, null, List.of(e.getMessage()), "Error")
+// // //             );
+// // //         }
+// // //     }
+// // // }
 
 // // // package com.project.controller;
 
-// // // import java.io.IOException;
-// // // import java.util.HashMap;
-// // // import java.util.Map;
-
+// // // import com.project.model.PlagiarismResponse;
+// // // import com.project.service.FileService;
+// // // import com.project.service.JPlagService;
 // // // import org.springframework.http.ResponseEntity;
-// // // import org.springframework.web.bind.annotation.GetMapping;
-// // // import org.springframework.web.bind.annotation.PostMapping;
-// // // import org.springframework.web.bind.annotation.RequestMapping;
-// // // import org.springframework.web.bind.annotation.RequestParam;
-// // // import org.springframework.web.bind.annotation.RestController;
+// // // import org.springframework.web.bind.annotation.*;
 // // // import org.springframework.web.multipart.MultipartFile;
-
-// // // import com.project.service.PlagiarismService;
+// // // import java.io.File;
+// // // import java.util.*;
 
 // // // @RestController
-// // // @RequestMapping("/plagiarism")
+// // // @RequestMapping("/api/plagiarism")
+// // // @CrossOrigin(origins = "*")
 // // // public class PlagiarismController {
 
-// // //     private final PlagiarismService plagiarismService;
+// // //     private final FileService fileService;
+// // //     private final JPlagService jPlagService;
 
-// // //     public PlagiarismController(PlagiarismService plagiarismService) {
-// // //         this.plagiarismService = plagiarismService;
+// // //     public PlagiarismController(FileService fileService, JPlagService jPlagService) {
+// // //         this.fileService = fileService;
+// // //         this.jPlagService = jPlagService;
 // // //     }
 
-// // //     // POST endpoint for actual plagiarism check with file upload
-// // //     @PostMapping("/check")
-// // //     public ResponseEntity<Map<String, Object>> checkPlagiarism(
-// // //             @RequestParam("file1") MultipartFile file1,
-// // //             @RequestParam("file2") MultipartFile file2) throws IOException {
+// // //     @PostMapping("/upload")
+// // //     public ResponseEntity<PlagiarismResponse> handleUpload(@RequestParam("file") MultipartFile file) {
+// // //         String jobId = "job_" + System.currentTimeMillis();
+// // //         try {
+// // //             File folder = fileService.extractZip(file, jobId);
+            
+// // //             // FIX: Added 'false' as the 3rd argument so it doesn't hang the server
+// // //             Map<String, Object> result = jPlagService.runJPlag(folder, jobId, false);
 
-// // //         String text1 = new String(file1.getBytes());
-// // //         String text2 = new String(file2.getBytes());
-
-// // //         double similarity = plagiarismService.calculateSimilarity(text1, text2);
-
-// // //         Map<String, Object> response = new HashMap<>();
-// // //         response.put("similarity", similarity);
-// // //         response.put("plagiarism", similarity > 0.7);
-
-// // //         return ResponseEntity.ok(response);
+// // //             return ResponseEntity.ok(new PlagiarismResponse(
+// // //                 jobId,
+// // //                 (Map<String, Double>) result.get("peerMatches"),
+// // //                 (List<String>) result.get("detailedLogs"),
+// // //                 "Success"
+// // //             ));
+// // //         } catch (Exception e) {
+// // //             e.printStackTrace();
+// // //             return ResponseEntity.internalServerError().body(
+// // //                 new PlagiarismResponse(jobId, null, List.of(e.getMessage()), "Error")
+// // //             );
+// // //         }
 // // //     }
 
-// // //     // GET endpoint for browser-friendly check
-// // //     @GetMapping("/check")
-// // //     public String checkPlagiarismInfo() {
-// // //         return "Use POST /plagiarism/check with form-data: file1 and file2 to test plagiarism.";
-// // //     }
-
-// // //     // GET endpoint for quick browser test
-// // //     @GetMapping("/check/test")
-// // //     public String testPlagiarism() {
-// // //         return "Plagiarism endpoint is alive. Use POST with files to test.";
+// // //     @GetMapping("/view-report")
+// // //     public ResponseEntity<String> viewReport(@RequestParam String jobId) {
+// // //         try {
+// // //             jPlagService.openReportViewer(jobId);
+// // //             return ResponseEntity.ok("Viewer started");
+// // //         } catch (Exception e) {
+// // //             return ResponseEntity.internalServerError().body(e.getMessage());
+// // //         }
 // // //     }
 // // // }
+
 
 // // package com.project.controller;
 
 // // import java.io.File;
-// // import java.io.IOException;
+// // import java.util.List;
 // // import java.util.Map;
 
 // // import org.springframework.http.ResponseEntity;
+// // import org.springframework.web.bind.annotation.GetMapping;
 // // import org.springframework.web.bind.annotation.PostMapping;
 // // import org.springframework.web.bind.annotation.RequestMapping;
 // // import org.springframework.web.bind.annotation.RequestParam;
 // // import org.springframework.web.bind.annotation.RestController;
 // // import org.springframework.web.multipart.MultipartFile;
 
+// // import com.project.model.PlagiarismResponse;
+// // import com.project.service.FileService;
 // // import com.project.service.JPlagService;
 
 // // @RestController
-// // @RequestMapping("/plagiarism")
+// // @RequestMapping("/api/plagiarism")
 // // public class PlagiarismController {
 
+// //     private final FileService fileService;
 // //     private final JPlagService jPlagService;
 
-// //     public PlagiarismController(JPlagService jPlagService) {
+// //     public PlagiarismController(FileService fileService, JPlagService jPlagService) {
+// //         this.fileService = fileService;
 // //         this.jPlagService = jPlagService;
 // //     }
 
-// //     // POST endpoint to upload a zip of student submissions
-// //     @PostMapping("/check-zip")
-// //     public ResponseEntity<?> checkZipPlagiarism(@RequestParam("zipFile") MultipartFile zipFile) throws IOException {
-
-// //         if (zipFile.isEmpty()) {
-// //             return ResponseEntity.badRequest().body("Zip file is required!");
-// //         }
-
-// //         // Save zip to temp folder
-// //         File tempZip = new File(System.getProperty("java.io.tmpdir"), zipFile.getOriginalFilename());
-// //         zipFile.transferTo(tempZip);
-
-// //         // Extract zip
-// //         File tempDir = new File(System.getProperty("java.io.tmpdir"), "jplag-" + System.currentTimeMillis());
-// //         tempDir.mkdirs();
-// //         ZipUtils.extractZip(tempZip, tempDir); // helper method to unzip files
-
+// //     @PostMapping("/upload")
+// //     public ResponseEntity<PlagiarismResponse> handleUpload(@RequestParam("file") MultipartFile file) {
+// //         String jobId = "job_" + System.currentTimeMillis();
 // //         try {
-// //             Map<String, Double> results = jPlagService.runJPlag(tempDir);
-// //             return ResponseEntity.ok(results);
+// //             File folder = fileService.extractZip(file, jobId);
+            
+// //             // Step 1: Run silently (showReport = false)
+// //             Map<String, Object> result = jPlagService.runJPlag(folder, jobId, false);
+
+// //             return ResponseEntity.ok(new PlagiarismResponse(
+// //                 jobId, 
+// //                 (Map<String, Double>) result.get("peerMatches"), 
+// //                 (List<String>) result.get("detailedLogs"), 
+// //                 "Success"
+// //             ));
 // //         } catch (Exception e) {
-// //             e.printStackTrace();
-// //             return ResponseEntity.status(500).body("Error running JPlag: " + e.getMessage());
+// //             return ResponseEntity.internalServerError().body(new PlagiarismResponse(jobId, null, List.of(e.getMessage()), "Error"));
+// //         }
+// //     }
+
+// //     @GetMapping("/view-report")
+// //     public ResponseEntity<String> viewReport(@RequestParam String jobId) {
+// //         try {
+// //             // Step 2: Open the viewer manually when the user clicks the button
+// //             jPlagService.openReportViewer(jobId); 
+// //             return ResponseEntity.ok("Viewer started");
+// //         } catch (Exception e) {
+// //             return ResponseEntity.internalServerError().body("Failed to open viewer: " + e.getMessage());
 // //         }
 // //     }
 // // }
@@ -198,51 +168,75 @@
 // package com.project.controller;
 
 // import java.io.File;
+// import java.util.List;
 // import java.util.Map;
 
-// import org.springframework.beans.factory.annotation.Autowired;
-// import org.springframework.web.bind.annotation.*;
+// import org.springframework.http.ResponseEntity;
+// import org.springframework.web.bind.annotation.GetMapping;
+// import org.springframework.web.bind.annotation.PostMapping;
+// import org.springframework.web.bind.annotation.RequestMapping;
+// import org.springframework.web.bind.annotation.RequestParam;
+// import org.springframework.web.bind.annotation.RestController;
 // import org.springframework.web.multipart.MultipartFile;
 
+// import com.project.model.PlagiarismResponse;
+// import com.project.service.FileService;
 // import com.project.service.JPlagService;
-// import com.project.utils.ZipUtils;
 
 // @RestController
-// @RequestMapping("/plagiarism")
+// @RequestMapping("/api/plagiarism")
 // public class PlagiarismController {
 
-//     @Autowired
-//     private JPlagService jPlagService;
+//     private final FileService fileService;
+//     private final JPlagService jPlagService;
 
-//     /**
-//      * Uploads a ZIP file containing student submissions.
-//      * Runs JPlag and returns similarity scores.
-//      */
-//     @PostMapping("/check")
-//     public Map<String, Double> checkPlagiarism(@RequestParam("file") MultipartFile file) throws Exception {
-//         // Save uploaded file to temp directory
-//         File tempDir = new File("temp-submissions");
-//         tempDir.mkdirs();
-//         File uploadedFile = new File(tempDir, file.getOriginalFilename());
-//         file.transferTo(uploadedFile);
+//     public PlagiarismController(FileService fileService, JPlagService jPlagService) {
+//         this.fileService = fileService;
+//         this.jPlagService = jPlagService;
+//     }
 
-//         // Extract ZIP
-//         File extractedDir = new File(tempDir, "extracted");
-//         extractedDir.mkdirs();
-//         ZipUtils.unzip(uploadedFile, extractedDir);
+//     @PostMapping("/upload")
+//     public ResponseEntity<PlagiarismResponse> handleUpload(@RequestParam("file") MultipartFile file) {
+//         String jobId = "job_" + System.currentTimeMillis();
+//         try {
+//             File folder = fileService.extractZip(file, jobId);
+            
+//             // Fixed: Added the 3rd argument (false)
+//             Map<String, Object> result = jPlagService.runJPlag(folder, jobId, false);
 
-//         // Run JPlag on extracted folder
-//         return jPlagService.runJPlag(extractedDir);
+//             return ResponseEntity.ok(new PlagiarismResponse(
+//                 jobId, 
+//                 (Map<String, Double>) result.get("peerMatches"), 
+//                 (List<String>) result.get("detailedLogs"), 
+//                 "Success"
+//             ));
+//         } catch (Exception e) {
+//             return ResponseEntity.internalServerError().body(
+//                 new PlagiarismResponse(jobId, null, List.of(e.getMessage()), "Error")
+//             );
+//         }
+//     }
+
+//     @GetMapping("/view-report")
+//     public ResponseEntity<String> viewReport(@RequestParam String jobId) {
+//         try {
+//             // Fixed: Service now accepts this String jobId correctly
+//             jPlagService.openReportViewer(jobId); 
+//             return ResponseEntity.ok("Viewer started");
+//         } catch (Exception e) {
+//             return ResponseEntity.internalServerError().body("Failed: " + e.getMessage());
+//         }
 //     }
 // }
 
 package com.project.controller;
 
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -250,50 +244,54 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.project.model.PlagiarismResponse;
+import com.project.service.FileService;
 import com.project.service.JPlagService;
-import com.project.utils.ZipUtils;
 
 @RestController
-@RequestMapping("/plagiarism")
+@RequestMapping("/api/plagiarism")
+@CrossOrigin("*")
 public class PlagiarismController {
 
-    @Autowired
-    private JPlagService jPlagService;
+    private final FileService fileService;
+    private final JPlagService jPlagService;
 
-    @PostMapping("/check")
-    public ResponseEntity<?> checkPlagiarism(@RequestParam("file") MultipartFile file) {
+    public PlagiarismController(FileService fileService, JPlagService jPlagService) {
+        this.fileService = fileService;
+        this.jPlagService = jPlagService;
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<PlagiarismResponse> upload(@RequestParam("file") MultipartFile file) {
+
+        String jobId = "job_" + System.currentTimeMillis();
 
         try {
+            File folder = fileService.extractZip(file, jobId);
 
-            if (file.isEmpty()) {
-                return ResponseEntity.badRequest().body("Please upload a ZIP file.");
-            }
+            Map<String, Object> result = jPlagService.runJPlag(folder, jobId, false);
 
-            File tempDir = new File(System.getProperty("java.io.tmpdir"), "temp-submissions");
-            if (!tempDir.exists()) {
-                tempDir.mkdirs();
-            }
-
-            File uploadedZip = new File(tempDir, file.getOriginalFilename());
-            file.transferTo(uploadedZip);
-
-            File extractedDir = new File(tempDir, "extracted-" + System.currentTimeMillis());
-            extractedDir.mkdirs();
-
-            ZipUtils.unzip(uploadedZip, extractedDir);
-
-            Map<String, Double> results = jPlagService.runJPlag(extractedDir);
-
-            return ResponseEntity.ok(results);
+            return ResponseEntity.ok(new PlagiarismResponse(
+                    jobId,
+                    (Map<String, Double>) result.get("peerMatches"),
+                    (List<String>) result.get("detailedLogs"),
+                    "Success"
+            ));
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Error running plagiarism check: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(
+                    new PlagiarismResponse(jobId, null, List.of(e.getMessage()), "Error")
+            );
         }
     }
 
-    @GetMapping("/test")
-    public String test() {
-        return "Plagiarism API running!";
+    @GetMapping("/view-report")
+    public ResponseEntity<String> viewReport(@RequestParam String jobId) {
+        try {
+            jPlagService.openReportViewer(jobId);
+            return ResponseEntity.ok("Viewer started");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
     }
 }

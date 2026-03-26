@@ -1,7 +1,6 @@
-
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
          https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
@@ -13,7 +12,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.5</version>
+        <version>3.4.1</version>
         <relativePath/>
     </parent>
 
@@ -23,38 +22,41 @@
 
     <dependencies>
 
-        <!-- Spring Boot Web -->
+        <!-- 🌐 Web (REST APIs) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Spring Boot JPA -->
+        <!-- 🗄️ JPA (optional, keep only if you store results in DB) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- PostgreSQL -->
+        <!-- 🐘 PostgreSQL -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
-        <!-- JPlag (Java 21 compatible version) -->
+        <!-- ✅ JACKSON (IMPORTANT for JPlag JSON parsing) -->
         <dependency>
-            <groupId>de.jplag</groupId>
-            <artifactId>jplag</artifactId>
-            <version>6.1.0</version>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
 
-        <!-- Spring Security for password encoding -->
+        <!-- ❌ REMOVE THIS (conflicts / unnecessary) -->
+        <!--
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20231013</version>
         </dependency>
+        -->
 
-        <!-- Spring Boot Testing -->
+        <!-- 🧪 Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -66,25 +68,22 @@
     <build>
         <plugins>
 
-            <!-- Java Compiler -->
+            <!-- 🚀 Spring Boot Runner -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!-- ✅ Ensure Java 21 compatibility -->
+            <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
                 <configuration>
                     <source>21</source>
                     <target>21</target>
                 </configuration>
             </plugin>
 
-            <!-- Spring Boot -->
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-
         </plugins>
     </build>
 
 </project>
-
