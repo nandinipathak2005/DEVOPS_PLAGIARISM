@@ -1,2 +1,3 @@
-com\project\controller\JobController.class
+com\project\service\AuthServiceTest.class
+com\project\test\JobController.class
 test\java\com\project\JobServiceTest.class

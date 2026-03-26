@@ -1,10 +1,9 @@
-package com.project.controller;
+// This class is used only for tests and should not be picked up by Spring component scanning.
+// It remains in the test sources so it can be referenced by tests if needed.
+package com.project.test;
 
 import com.project.service.JobService;
-import org.springframework.web.bind.annotation.*;
 
-@RestController
-@RequestMapping("/jobs")
 public class JobController {
 
     private final JobService jobService;
@@ -13,7 +12,6 @@ public class JobController {
         this.jobService = jobService;
     }
 
-    @PostMapping
     public Long createJob(){
         return jobService.createJob();
     }

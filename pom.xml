@@ -48,6 +48,12 @@
             <version>6.1.0</version>
         </dependency>
 
+        <!-- Spring Security for password encoding -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
         <!-- Spring Boot Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
