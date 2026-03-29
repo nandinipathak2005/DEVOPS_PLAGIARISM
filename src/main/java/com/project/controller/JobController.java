@@ -19,7 +19,7 @@ public class JobController {
         this.jobService = jobService;
     }
 
-    @PostMapping("/create")
+    @PostMapping
     public Long createJob() {
         return jobService.createJob();
     }
