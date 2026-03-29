@@ -1,4 +1,4 @@
-package com.project.service;
+package com.project;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,6 +9,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import com.project.model.User;
 import com.project.repository.UserRepository;
+import com.project.service.AuthService;
 import com.project.dto.LoginRequest;
 import com.project.dto.LoginResponse;
 import com.project.exception.UserNotFoundException;

@@ -55,7 +55,7 @@ public class AuthController {
                 user.getId()
             );
             return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             LoginResponse errorResponse = new LoginResponse(false, e.getMessage());
             return ResponseEntity.status(400).body(errorResponse);
         }

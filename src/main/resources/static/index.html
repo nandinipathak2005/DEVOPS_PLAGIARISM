@@ -92,7 +92,7 @@
 </body>
 </html> -->
 
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -224,5 +224,1272 @@
         }
     }
 </script>
+</body>
+</html> -->
+
+
+
+<!-- Working version---- -->
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Plagiarism Analysis Portal</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 40px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 900px; margin: auto; }
+        .terminal { background: #1e1e1e; color: #4af626; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; height: 200px; overflow-y: auto; margin: 20px 0; font-size: 13px; white-space: pre-wrap; border: 2px solid #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #f8f9fa; padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; }
+        td { padding: 12px; border-bottom: 1px solid #dee2e6; }
+        .badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .high { background: #ffebee; color: #c62828; }
+        .low { background: #e8f5e9; color: #2e7d32; }
+        .btn-report { background: #007bff; color: white; border: none; padding: 8px 18px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-report:hover { background: #0056b3; }
+
+        .auth-box input { padding: 8px; margin-right: 10px; }
+        .auth-box button { padding: 8px 12px; margin-right: 5px; cursor: pointer; }
+        .logout { background: #dc3545; color: white; border: none; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+
+    <h2>🔐 Authentication</h2>
+    <div class="auth-box" id="authSection">
+        <input type="email" id="username" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+
+        <button onclick="signup()">Sign Up</button>
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div id="userSection" style="display:none;">
+        <p>✅ Logged in as <b id="loggedUser"></b></p>
+        <button class="logout" onclick="logout()">Logout</button>
+    </div>
+
+    <hr>
+
+    <h2>🔍 Plagiarism Analysis Portal</h2>
+    <p>Upload a ZIP file containing student Java submissions.</p>
+    
+    <div style="margin-bottom: 20px;">
+        <input type="file" id="zipFile" accept=".zip">
+        <button onclick="startAnalysis()" style="background:#28a745; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Run Audit</button>
+    </div>
+
+    <div class="terminal" id="logBox">> System ready. Awaiting upload...</div>
+
+    <div id="resultSection" style="display:none;">
+        <hr>
+        <h3>Audit Summary</h3>
+        <table id="resTable">
+            <thead>
+                <tr>
+                    <th>Comparison Pair</th>
+                    <th>Similarity</th>
+                    <th>Risk Level</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const API_BASE = "/api/auth";
+
+    function saveToken(token, email) {
+        localStorage.setItem("token", token);
+        localStorage.setItem("email", email);
+        updateUI();
+    }
+
+    function getToken() {
+        return localStorage.getItem("token");
+    }
+
+    function logout() {
+        localStorage.clear();
+        updateUI();
+    }
+
+    function updateUI() {
+        const token = getToken();
+        if (token) {
+            document.getElementById("authSection").style.display = "none";
+            document.getElementById("userSection").style.display = "block";
+            document.getElementById("loggedUser").innerText = localStorage.getItem("email");
+        } else {
+            document.getElementById("authSection").style.display = "block";
+            document.getElementById("userSection").style.display = "none";
+        }
+    }
+
+    async function signup() {
+        const email = document.getElementById("username")?.value;
+        const password = document.getElementById("password")?.value;
+
+        if (!email || !password) {
+            alert("Enter email and password");
+            return;
+        }
+
+        const res = await fetch(`${API_BASE}/register`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                name: email,      // ✅ use email as name (or split later)
+                email: email,
+                password: password
+            })
+        });
+
+        // ✅ SAFE JSON parsing
+        let data = {};
+        try {
+            data = await res.json();
+        } catch {
+            alert("Signup failed (no response body)");
+            return;
+        }
+
+        if (res.ok) {
+            alert(data.message || "Signup successful");
+        } else {
+            alert(data.message || "Signup failed");
+        }
+    }
+    async function login() {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        const res = await fetch(`${API_BASE}/login`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                email: username,      // 🔥 FIX
+                password: password
+            })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            saveToken(data.token, username);
+        } else {
+            alert(data.message || "Login failed");
+        }
+    }
+    async function startAnalysis() {
+        const token = getToken();
+        if (!token) return alert("Please login first");
+
+        const file = document.getElementById('zipFile').files[0];
+        if (!file) return alert("Select a ZIP file");
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const logBox = document.getElementById('logBox');
+        logBox.innerText = "> Running analysis...";
+
+        try {
+            const response = await fetch('/api/plagiarism/upload', { 
+                method: 'POST',
+                body: formData 
+            });
+
+            const data = await response.json();
+
+            logBox.innerText = data.detailedLogs?.join('\n') || "Done";
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            if (data.peerMatches) {
+                for (let [pair, score] of Object.entries(data.peerMatches)) {
+                    const isHigh = score > 50;
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${pair}</td>
+                            <td>${score.toFixed(2)}%</td>
+                            <td><span class="badge ${isHigh ? 'high' : 'low'}">${isHigh ? 'HIGH' : 'LOW'}</span></td>
+                        </tr>`;
+                }
+            }
+
+            document.getElementById('resultSection').style.display = 'block';
+
+        } catch (err) {
+            alert("Error: " + err.message);
+        }
+    }
+
+    window.onload = updateUI;
+</script>
+
+</body>
+</html> -->
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Plagiarism Portal</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* CARD */
+.card {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(12px);
+    padding: 30px;
+    border-radius: 16px;
+    width: 400px;
+    color: white;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+/* INPUTS */
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+}
+
+/* BUTTON */
+button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 8px;
+    background: #00c9ff;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #009edb;
+}
+
+.toggle {
+    margin-top: 15px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* DASHBOARD */
+#dashboard {
+    display: none;
+    width: 900px;
+    background: white;
+    color: black;
+    padding: 25px;
+    border-radius: 12px;
+}
+
+/* TERMINAL */
+.terminal {
+    background: black;
+    color: #4af626;
+    padding: 10px;
+    border-radius: 8px;
+    height: 150px;
+    overflow-y: auto;
+    margin-top: 15px;
+    font-size: 12px;
+}
+
+/* TABLE */
+table {
+    width: 100%;
+    margin-top: 15px;
+    border-collapse: collapse;
+}
+
+td, th {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.high { color: red; }
+.low { color: green; }
+</style>
+</head>
+
+<body>
+
+<!-- AUTH CARD -->
+<!-- <div class="card" id="authCard">
+    <h2 id="authTitle">Login</h2>
+
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+
+    <button onclick="login()" id="loginBtn">Login</button>
+    <button onclick="signup()" id="signupBtn" style="display:none;">Sign Up</button>
+
+    <div class="toggle" onclick="toggleAuth()">
+        <span id="toggleText">Don't have an account? Sign up</span>
+    </div>
+</div> -->
+
+<!-- DASHBOARD -->
+<!-- <div id="dashboard">
+    <h2>👋 Welcome <span id="userEmail"></span></h2>
+    <button onclick="logout()" style="background:red;">Logout</button>
+
+    <hr>
+
+    <h3>Upload ZIP for Analysis</h3>
+
+    <input type="file" id="zipFile">
+    <button onclick="startAnalysis()">Run Analysis</button>
+
+    <div class="terminal" id="logBox">System ready...</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Pair</th>
+                <th>Similarity</th>
+                <th>Risk</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+</div>
+
+<script>
+const API_BASE = "/api/auth";
+let isLogin = true;
+
+/* ================= AUTH TOGGLE ================= */
+function toggleAuth() {
+    isLogin = !isLogin;
+
+    document.getElementById("authTitle").innerText = isLogin ? "Login" : "Sign Up";
+    document.getElementById("loginBtn").style.display = isLogin ? "block" : "none";
+    document.getElementById("signupBtn").style.display = isLogin ? "none" : "block";
+
+    document.getElementById("toggleText").innerText =
+        isLogin ? "Don't have an account? Sign up" : "Already have an account? Login";
+}
+
+/* ================= TOKEN ================= */
+function saveToken(token, email) {
+    localStorage.setItem("token", token);
+    localStorage.setItem("email", email);
+}
+
+function getToken() {
+    return localStorage.getItem("token");
+}
+
+/* ================= UI ================= */
+function updateUI() {
+    const token = getToken();
+
+    if (token) {
+        document.getElementById("authCard").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+        document.getElementById("userEmail").innerText = localStorage.getItem("email");
+    } else {
+        document.getElementById("authCard").style.display = "block";
+        document.getElementById("dashboard").style.display = "none";
+    }
+}
+
+/* ================= SIGNUP ================= */
+async function signup() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    if (!email || !password) return alert("Enter all fields");
+
+    const res = await fetch(`${API_BASE}/register`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            name: email,
+            email: email,
+            password: password
+        })
+    });
+
+    let data = {};
+    try { data = await res.json(); } catch {}
+
+    if (res.ok) {
+        alert("Signup successful! Now login.");
+        toggleAuth();
+    } else {
+        alert(data.message || "Signup failed");
+    }
+}
+
+/* ================= LOGIN ================= */
+async function login() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    const res = await fetch(`${API_BASE}/login`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ email, password })
+    });
+
+    let data = {};
+    try { data = await res.json(); } catch {}
+
+    if (data.success) {
+        saveToken(data.token, email);
+        updateUI();
+    } else {
+        alert(data.message || "Login failed");
+    }
+}
+
+/* ================= LOGOUT ================= */
+function logout() {
+    localStorage.clear();
+    updateUI();
+}
+
+/* ================= ANALYSIS ================= */
+async function startAnalysis() {
+    const file = document.getElementById("zipFile").files[0];
+    if (!file) return alert("Select a file");
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const logBox = document.getElementById("logBox");
+    logBox.innerText = "Running analysis...";
+
+    const res = await fetch("/api/plagiarism/upload", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await res.json();
+
+    logBox.innerText = data.detailedLogs?.join("\n") || "Done";
+
+    const tbody = document.getElementById("tableBody");
+    tbody.innerHTML = "";
+
+    if (data.peerMatches) {
+        for (let [pair, score] of Object.entries(data.peerMatches)) {
+            const high = score > 50;
+            tbody.innerHTML += `
+                <tr>
+                    <td>${pair}</td>
+                    <td>${score.toFixed(2)}%</td>
+                    <td class="${high ? 'high' : 'low'}">${high ? 'HIGH' : 'LOW'}</td>
+                </tr>
+            `;
+        }
+    }
+}
+
+/* INIT */
+window.onload = updateUI;
+</script>
+
+</body>
+</html> --> 
+
+<!-- Gemini WOrking code without report
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeGuard AI | Plagiarism Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Lato', sans-serif; }
+        .terminal-font { font-family: 'Fira Code', monospace; }
+        .hidden { display: none; }
+        /* Custom scrollbar for terminal */
+        #logBox::-webkit-scrollbar { width: 6px; }
+        #logBox::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-black text-white min-h-screen">
+
+    <header class="border-b border-gray-800 bg-black/50 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-purple-500 tracking-tight">CodeGuard <span class="text-white">AI</span></h1>
+            <div id="userNav" class="hidden flex items-center gap-4">
+                <span id="displayEmail" class="text-sm text-gray-400"></span>
+                <button onclick="logout()" class="text-xs bg-red-900/30 text-red-400 border border-red-800 px-3 py-1 rounded hover:bg-red-800 hover:text-white transition">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <section id="authSection" class="flex items-center justify-center py-20 bg-gradient-to-b from-black to-gray-900">
+        <div class="bg-gray-900 p-10 rounded-2xl shadow-2xl border border-gray-800 w-full max-w-md">
+            <h2 id="authTitle" class="text-3xl font-semibold text-center mb-6 text-white">🔐 Login</h2>
+            
+            <div class="space-y-4">
+                <input id="email" type="email" placeholder="Email Address" 
+                    class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-purple-500 transition">
+                
+                <input id="password" type="password" placeholder="Password" 
+                    class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-purple-500 transition">
+
+                <button id="loginBtn" onclick="login()" class="w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-lg font-bold transition transform active:scale-95">
+                    Sign In
+                </button>
+                <button id="signupBtn" onclick="signup()" class="hidden w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-lg font-bold transition transform active:scale-95">
+                    Create Account
+                </button>
+
+                <p class="text-center text-gray-400 text-sm mt-4">
+                    <span id="toggleMsg">Don't have an account?</span> 
+                    <button onclick="toggleAuth()" id="toggleLink" class="text-purple-400 hover:underline ml-1">Sign Up</button>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section id="mainApp" class="hidden px-6 py-12 max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-gray-900 p-6 rounded-xl border border-gray-800">
+                    <h3 class="text-xl font-bold mb-4">Upload Source</h3>
+                    <p class="text-gray-400 text-sm mb-4">Upload a ZIP file containing the codebases you want to compare.</p>
+                    
+                    <input type="file" id="zipFile" accept=".zip"
+                        class="mb-6 block w-full text-sm text-gray-400
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-lg file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-purple-600 file:text-white
+                        hover:file:bg-purple-700 cursor-pointer">
+
+                    <button onclick="startAnalysis()" class="w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition">
+                        <span>🚀 Run Analysis</span>
+                    </button>
+                </div>
+
+                <div class="bg-black border border-gray-800 rounded-xl p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold uppercase text-gray-500">System Logs</span>
+                        <div class="flex gap-1">
+                            <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                            <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                            <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                        </div>
+                    </div>
+                    <div id="logBox" class="terminal-font text-green-500 text-xs h-40 overflow-y-auto bg-black p-2 rounded">
+                        > System standby...
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2">
+                <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+                    <div class="p-6 border-b border-gray-800 flex justify-between items-center">
+                        <h3 class="text-xl font-bold">Analysis Results</h3>
+                        <div id="reportBtnContainer"></div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-800 text-gray-400 text-xs uppercase">
+                                <tr>
+                                    <th class="px-6 py-4">Comparison Pair</th>
+                                    <th class="px-6 py-4">Similarity</th>
+                                    <th class="px-6 py-4 text-center">Risk Level</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody" class="divide-y divide-gray-800">
+                                <tr>
+                                    <td colspan="3" class="px-6 py-10 text-center text-gray-500 italic">No data analyzed yet.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <script>
+        const AUTH_API = "/api/auth";
+        const PLAG_API = "/api/plagiarism";
+        let isLoginMode = true;
+
+        /* --- AUTH LOGIC --- */
+        function toggleAuth() {
+            isLoginMode = !isLoginMode;
+            document.getElementById("authTitle").innerText = isLoginMode ? "🔐 Login" : "🔑 Sign Up";
+            document.getElementById("loginBtn").classList.toggle("hidden", !isLoginMode);
+            document.getElementById("signupBtn").classList.toggle("hidden", isLoginMode);
+            document.getElementById("toggleMsg").innerText = isLoginMode ? "Don't have an account?" : "Already have an account?";
+            document.getElementById("toggleLink").innerText = isLoginMode ? "Sign Up" : "Login";
+        }
+
+        async function signup() {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            if(!email || !password) return alert("Please fill all fields");
+
+            try {
+                const res = await fetch(`${AUTH_API}/register`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ name: email.split('@')[0], email, password })
+                });
+                if (res.ok) {
+                    alert("Account created! Please login.");
+                    toggleAuth();
+                } else {
+                    const err = await res.json();
+                    alert(err.message || "Signup failed");
+                }
+            } catch (e) { alert("Server connection failed"); }
+        }
+
+        async function login() {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+
+            try {
+                const res = await fetch(`${AUTH_API}/login`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+
+                if (data.success || data.token) {
+                    localStorage.setItem("token", data.token);
+                    localStorage.setItem("email", email);
+                    initUI();
+                } else {
+                    alert(data.message || "Invalid credentials");
+                }
+            } catch (e) {
+                // For demo/offline: if server doesn't exist yet, uncomment line below to bypass
+                // localStorage.setItem("token", "dummy"); initUI();
+                alert("Login failed: 403 or Server Offline");
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            location.reload();
+        }
+
+        /* --- UI MANAGEMENT --- */
+        function initUI() {
+            const token = localStorage.getItem("token");
+            if (token) {
+                document.getElementById("authSection").classList.add("hidden");
+                document.getElementById("mainApp").classList.remove("hidden");
+                document.getElementById("userNav").classList.remove("hidden");
+                document.getElementById("displayEmail").innerText = localStorage.getItem("email");
+            } else {
+                document.getElementById("authSection").classList.remove("hidden");
+                document.getElementById("mainApp").classList.add("hidden");
+            }
+        }
+
+        function addLog(msg) {
+            const logBox = document.getElementById("logBox");
+            logBox.innerHTML += `<div>> ${msg}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        /* --- ANALYSIS LOGIC --- */
+        async function startAnalysis() {
+            const file = document.getElementById("zipFile").files[0];
+            const token = localStorage.getItem("token");
+
+            if (!file) return alert("Please select a ZIP file first.");
+            
+            const formData = new FormData();
+            formData.append("file", file);
+
+            addLog(`Initializing analysis for ${file.name}...`);
+            const tbody = document.getElementById("tableBody");
+            tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-purple-400 animate-pulse">Analyzing codebase...</td></tr>`;
+
+            try {
+                const res = await fetch(`${PLAG_API}/upload`, {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${token}` }, // Fixing the 403 error
+                    body: formData
+                });
+
+                if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+
+                const data = await res.json();
+                
+                // Detailed Logs
+                if (data.detailedLogs) {
+                    data.detailedLogs.forEach(log => addLog(log));
+                } else {
+                    addLog("Analysis complete.");
+                }
+
+                // Peer Matches Table
+                tbody.innerHTML = "";
+                if (data.peerMatches && Object.keys(data.peerMatches).length > 0) {
+                    for (let [pair, score] of Object.entries(data.peerMatches)) {
+                        const isHigh = score > 50;
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-gray-800/50 transition">
+                                <td class="px-6 py-4 terminal-font text-sm text-gray-300">${pair}</td>
+                                <td class="px-6 py-4 font-bold ${isHigh ? 'text-red-500' : 'text-green-500'}">${score.toFixed(2)}%</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-2 py-1 rounded-full text-[10px] font-bold ${isHigh ? 'bg-red-900/40 text-red-400 border border-red-800' : 'bg-green-900/40 text-green-400 border border-green-800'}">
+                                        ${isHigh ? 'HIGH RISK' : 'LOW RISK'}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-gray-500">No matches found. Code appears unique.</td></tr>`;
+                }
+
+                // Show Report Button if JobID exists
+                // if (data.jobId) {
+                //     document.getElementById('reportBtnContainer').innerHTML = `
+                //         <button onclick="window.open('/api/jplag/report/${data.jobId}', '_blank')" 
+                //             class="bg-green-600 hover:bg-green-700 text-white text-xs px-4 py-2 rounded-lg font-bold transition">
+                //             VIEW INTERACTIVE REPORT
+                //         </button>`;
+                // }
+                if (data.jobId) {
+                    document.getElementById('reportBtnContainer').innerHTML = `
+                        <button id="viewReportBtn" class="bg-green-600 hover:bg-green-700 text-white text-xs px-4 py-2 rounded-lg font-bold transition">
+                            VIEW INTERACTIVE REPORT
+                        </button>`;
+
+                    document.getElementById('viewReportBtn').onclick = async () => {
+                        const reportRes = await fetch(`/api/jplag/report/${data.jobId}`, {
+                            headers: { "Authorization": `Bearer ${token}` }
+                        });
+                        const blob = await reportRes.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        window.open(url, '_blank');
+                    };
+                }
+
+            } catch (err) {
+                addLog(`ERROR: ${err.message}`);
+                tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-red-500 font-bold">Analysis Failed. Please check console.</td></tr>`;
+            }
+        }
+
+        // Initialize on load
+        window.onload = initUI;
+    </script>
+</body>
+</html> -->
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeGuard AI | Plagiarism Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Lato', sans-serif; }
+        .terminal-font { font-family: 'Fira Code', monospace; }
+        .hidden { display: none; }
+        #logBox::-webkit-scrollbar { width: 6px; }
+        #logBox::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-black text-white min-h-screen">
+
+    <header class="border-b border-gray-800 bg-black/50 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-purple-500 tracking-tight">CodeGuard <span class="text-white">AI</span></h1>
+            <div id="userNav" class="hidden flex items-center gap-4">
+                <span id="displayEmail" class="text-sm text-gray-400"></span>
+                <button onclick="logout()" class="text-xs bg-red-900/30 text-red-400 border border-red-800 px-3 py-1 rounded hover:bg-red-800 transition">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <section id="authSection" class="flex items-center justify-center py-20 bg-gradient-to-b from-black to-gray-900">
+        <div class="bg-gray-900 p-10 rounded-2xl shadow-2xl border border-gray-800 w-full max-w-md">
+            <h2 id="authTitle" class="text-3xl font-semibold text-center mb-6 text-white">Login</h2>
+            <div class="space-y-4">
+                <input id="email" type="email" placeholder="Email" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-purple-500 transition text-white">
+                <input id="password" type="password" placeholder="Password" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-purple-500 transition text-white">
+                <button id="loginBtn" onclick="login()" class="w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-lg font-bold transition">Login</button>
+                <button id="signupBtn" onclick="signup()" class="hidden w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-lg font-bold transition">Sign Up</button>
+                <p class="text-center text-gray-400 text-sm mt-4 cursor-pointer" onclick="toggleAuth()">
+                    <span id="toggleText">Don't have an account? Sign up</span>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section id="mainApp" class="hidden px-6 py-12 max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-gray-900 p-6 rounded-xl border border-gray-800">
+                    <h3 class="text-xl font-bold mb-4">Upload ZIP for Analysis</h3>
+                    <input type="file" id="zipFile" accept=".zip" class="mb-6 block w-full text-sm text-gray-400 file:bg-purple-600 file:text-white file:rounded-lg file:border-0 file:px-4 file:py-2 cursor-pointer">
+                    <button onclick="startAnalysis()" class="w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-lg font-bold transition">Run Audit</button>
+                </div>
+                <div class="bg-black border border-gray-800 rounded-xl p-4">
+                    <span class="text-xs font-bold uppercase text-gray-500">Terminal Logs</span>
+                    <div id="logBox" class="terminal-font text-green-500 text-xs h-40 overflow-y-auto bg-black p-2 mt-2 rounded">> System ready.</div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2">
+                <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+                    <div class="p-6 border-b border-gray-800 flex justify-between items-center">
+                        <h3 class="text-xl font-bold">Audit Summary</h3>
+                        <div id="reportButtonContainer"></div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-800 text-gray-400 text-xs uppercase">
+                                <tr>
+                                    <th class="px-6 py-4">Comparison Pair</th>
+                                    <th class="px-6 py-4">Similarity</th>
+                                    <th class="px-6 py-4 text-center">Risk Level</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody" class="divide-y divide-gray-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        const API_BASE = "/api/auth";
+        let isLogin = true;
+
+        /* --- AUTH LOGIC --- */
+        function toggleAuth() {
+            isLogin = !isLogin;
+            document.getElementById("authTitle").innerText = isLogin ? "Login" : "Sign Up";
+            document.getElementById("loginBtn").style.display = isLogin ? "block" : "none";
+            document.getElementById("signupBtn").style.display = isLogin ? "none" : "block";
+            document.getElementById("toggleText").innerText = isLogin ? "Don't have an account? Sign up" : "Already have an account? Login";
+        }
+
+        async function login() {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const res = await fetch(`${API_BASE}/login`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            if (data.success) {
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("email", email);
+                updateUI();
+            } else { alert(data.message || "Login failed"); }
+        }
+
+        function logout() { localStorage.clear(); location.reload(); }
+
+        function updateUI() {
+            const token = localStorage.getItem("token");
+            if (token) {
+                document.getElementById("authSection").classList.add("hidden");
+                document.getElementById("mainApp").classList.remove("hidden");
+                document.getElementById("userNav").classList.remove("hidden");
+                document.getElementById("displayEmail").innerText = localStorage.getItem("email");
+            }
+        }
+
+        /* --- ANALYSIS LOGIC (Using your working logic) --- */
+        async function startAnalysis() {
+            const fileInput = document.getElementById('zipFile');
+            const logBox = document.getElementById('logBox');
+            const file = fileInput.files[0];
+            
+            if (!file) return alert("Please select a ZIP file");
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            // UI Reset
+            logBox.innerText = "> Initializing...\n> Extracting Submissions...\n> Running JPlag Engine...";
+            document.getElementById('reportButtonContainer').innerHTML = '';
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/plagiarism/upload', { 
+                    method: 'POST', 
+                    body: formData 
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "Server error");
+                }
+
+                const data = await response.json();
+
+                // 1. Show Logs
+                logBox.innerText = data.detailedLogs ? data.detailedLogs.join('\n') : "Done.";
+
+                // 2. Add View Report Button (Using the fixed OpenJPlagViewer logic)
+                if (data.jobId) {
+                    document.getElementById('reportButtonContainer').innerHTML = `
+                        <button onclick="openJPlagViewer('${data.jobId}')" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-2 rounded-lg font-bold transition">
+                            🔍 Open Interactive JPlag Report
+                        </button>`;
+                }
+
+                // 3. Populate Table
+                const matches = data.peerMatches;
+                if (matches && Object.keys(matches).length > 0) {
+                    for (let [pair, score] of Object.entries(matches)) {
+                        const isHigh = score > 50;
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-gray-800/50 transition">
+                                <td class="px-6 py-4 terminal-font text-sm text-gray-300">${pair}</td>
+                                <td class="px-6 py-4 font-bold ${isHigh ? 'text-red-500' : 'text-green-500'}">${parseFloat(score).toFixed(2)}%</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-2 py-1 rounded-full text-[10px] font-bold ${isHigh ? 'bg-red-900/40 text-red-400 border border-red-800' : 'bg-green-900/40 text-green-400 border border-green-800'}">
+                                        ${isHigh ? 'HIGH' : 'LOW'}
+                                    </span>
+                                </td>
+                            </tr>`;
+                    }
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-gray-500 italic">No significant similarities found.</td></tr>';
+                }
+                logBox.scrollTop = logBox.scrollHeight;
+
+            } catch (error) {
+                logBox.innerText += "\n\n[FATAL ERROR]: " + error.message;
+                alert("Analysis failed: " + error.message);
+            }
+        }
+
+        /* --- WORKING REPORT LOGIC (from your snippet) --- */
+        async function openJPlagViewer(jobId) {
+            try {
+                // This logic does not use window.open directly on the file path, 
+                // avoiding the chrome-error/403 issues.
+                const res = await fetch(`/api/plagiarism/view-report?jobId=${jobId}`);
+                if (res.ok) {
+                    alert("Opening the interactive JPlag report on the server...");
+                } else {
+                    alert("Failed to open report viewer. Check if the job directory exists.");
+                }
+            } catch (err) {
+                console.error("Error:", err);
+            }
+        }
+
+        window.onload = updateUI;
+    </script>
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeGuard</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Lato', sans-serif; }
+        .terminal-font { font-family: 'Fira Code', monospace; }
+        #logBox::-webkit-scrollbar { width: 6px; }
+        #logBox::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+    </style>
+</head>
+
+<body class="bg-black text-white min-h-screen">
+
+<!-- HEADER -->
+<header class="border-b border-gray-800 bg-black/50 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-purple-500">CodeGuard <span class="text-white"></span></h1>
+        <div id="userNav" class="hidden flex items-center gap-4">
+            <span id="displayEmail" class="text-sm text-gray-400"></span>
+            <button onclick="logout()" class="text-xs bg-red-900/30 text-red-400 border border-red-800 px-4 py-1.5 rounded-full hover:bg-red-800 transition">Logout</button>
+        </div>
+    </div>
+</header>
+
+<!-- AUTH -->
+<section id="authSection" class="flex items-center justify-center py-20 bg-gradient-to-b from-black to-gray-900">
+    <div class="bg-gray-900 p-10 rounded-2xl border border-gray-800 w-full max-w-md shadow-xl">
+        <h2 id="authTitle" class="text-3xl text-center mb-6">Login</h2>
+
+        <input id="email" type="email" placeholder="Email" class="w-full p-3 mb-3 bg-gray-800 rounded-xl border border-gray-700">
+        <input id="password" type="password" placeholder="Password" class="w-full p-3 mb-3 bg-gray-800 rounded-xl border border-gray-700">
+
+        <button id="loginBtn" onclick="login()" class="w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-xl mb-2 font-semibold transition">
+            Login
+        </button>
+
+        <button id="signupBtn" onclick="signup()" class="hidden w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl mb-2 font-semibold transition">
+            Sign Up
+        </button>
+
+        <p onclick="toggleAuth()" id="toggleText" class="text-center text-sm cursor-pointer text-gray-400 mt-3">
+            Don't have an account? Sign up
+        </p>
+    </div>
+</section>
+
+<!-- MAIN -->
+<section id="mainApp" class="hidden px-6 py-12 max-w-6xl mx-auto">
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+    <!-- LEFT -->
+    <div class="space-y-6">
+
+        <div class="bg-gray-900 p-6 rounded-2xl border border-gray-800 shadow-lg">
+            <h3 class="text-lg font-semibold mb-4">Upload ZIP</h3>
+
+            <!-- FILE INPUT -->
+            <input type="file" id="zipFile"
+                class="block w-full text-sm text-gray-400
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-xl file:border-0
+                file:bg-purple-600 file:text-white
+                file:font-semibold
+                hover:file:bg-purple-700
+                cursor-pointer mb-5"/>
+
+            <button onclick="startAnalysis()"
+                class="w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-xl font-semibold transition">
+                Run Analysis
+            </button>
+        </div>
+
+        <!-- TERMINAL -->
+        <div class="bg-black border border-gray-800 p-4 rounded-2xl shadow-inner">
+            <div id="logBox" class="terminal-font text-green-400 text-xs h-40 overflow-y-auto">
+                > System ready
+            </div>
+        </div>
+
+    </div>
+
+    <!-- RIGHT -->
+    <div class="lg:col-span-2">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-lg">
+
+            <div class="p-5 border-b border-gray-800 flex justify-between items-center">
+                <h3 class="font-semibold">Audit Results</h3>
+                <div id="reportButtonContainer"></div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-800 text-gray-400 text-xs uppercase">
+                        <tr>
+                            <th class="px-6 py-4">Pair</th>
+                            <th class="px-6 py-4">Similarity</th>
+                            <th class="px-6 py-4 text-center">Risk</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-gray-800"></tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+</section>
+
+<script>
+
+const API_BASE = "/api/auth";
+let isLogin = true;
+
+/* AUTH */
+function toggleAuth() {
+    isLogin = !isLogin;
+    authTitle.innerText = isLogin ? "Login" : "Sign Up";
+    loginBtn.style.display = isLogin ? "block" : "none";
+    signupBtn.style.display = isLogin ? "none" : "block";
+    toggleText.innerText = isLogin
+        ? "Don't have an account? Sign up"
+        : "Already have an account? Login";
+}
+
+async function login() {
+    const res = await fetch(`${API_BASE}/login`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({
+            email: email.value,
+            password: password.value
+        })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("email", email.value);
+        updateUI();
+    } else alert("Login failed");
+}
+
+async function signup() {
+    const res = await fetch(`${API_BASE}/register`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({
+            email: email.value,
+            password: password.value
+        })
+    });
+
+    if (res.ok) {
+        alert("Signup success");
+        toggleAuth();
+    } else alert("Signup failed");
+}
+
+function logout() {
+    localStorage.clear();
+    location.reload();
+}
+
+function updateUI() {
+    if (localStorage.getItem("token")) {
+        authSection.classList.add("hidden");
+        mainApp.classList.remove("hidden");
+        userNav.classList.remove("hidden");
+        displayEmail.innerText = localStorage.getItem("email");
+    }
+}
+
+/* RISK SYSTEM */
+function getRisk(score) {
+    if (score <= 20) return { label:"VERY LOW", color:"text-green-400", bg:"bg-green-900/40 border-green-800" };
+    if (score <= 40) return { label:"LOW", color:"text-green-500", bg:"bg-green-900/40 border-green-800" };
+    if (score <= 60) return { label:"MEDIUM", color:"text-yellow-400", bg:"bg-yellow-900/40 border-yellow-800" };
+    if (score <= 80) return { label:"HIGH", color:"text-red-400", bg:"bg-red-900/40 border-red-800" };
+    return { label:"VERY HIGH", color:"text-red-600", bg:"bg-red-900/60 border-red-900" };
+}
+
+/* ANALYSIS */
+async function startAnalysis() {
+
+    const file = zipFile.files[0];
+    if (!file) return alert("Select file");
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    logBox.innerText = "> Running...\n> JPlag started...\n";
+
+    tableBody.innerHTML = "";
+    reportButtonContainer.innerHTML = "";
+
+    try {
+        const res = await fetch("/api/plagiarism/upload", {
+            method:"POST",
+            body:formData
+        });
+
+        const data = await res.json();
+
+        logBox.innerText = data.detailedLogs?.join("\n") || "Done";
+
+        if (data.jobId) {
+            reportButtonContainer.innerHTML = `
+                <button onclick="openReport('${data.jobId}')"
+                class="bg-blue-600 hover:bg-blue-700 px-4 py-1.5 rounded-full text-xs font-semibold transition">
+                View Interactive Report
+                </button>`;
+        }
+
+        for (let [pair, score] of Object.entries(data.peerMatches || {})) {
+
+            const risk = getRisk(score);
+
+            tableBody.innerHTML += `
+            <tr class="hover:bg-gray-800/40 transition">
+                <td class="px-6 py-4">${pair}</td>
+                <td class="px-6 py-4 font-bold ${risk.color}">
+                    ${score.toFixed(2)}%
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <span class="px-3 py-1 text-xs rounded-full border ${risk.bg} ${risk.color}">
+                        ${risk.label}
+                    </span>
+                </td>
+            </tr>`;
+        }
+
+    } catch (e) {
+        logBox.innerText += "\nERROR: " + e.message;
+    }
+}
+
+/* REPORT */
+async function openReport(jobId) {
+    await fetch(`/api/plagiarism/view-report?jobId=${jobId}`);
+    alert("Report opened on server");
+}
+
+window.onload = updateUI;
+
+</script>
+
 </body>
 </html>

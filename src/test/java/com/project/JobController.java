@@ -1,6 +1,6 @@
 // This class is used only for tests and should not be picked up by Spring component scanning.
 // It remains in the test sources so it can be referenced by tests if needed.
-package com.project.test;
+package com.project;
 
 import com.project.service.JobService;
 

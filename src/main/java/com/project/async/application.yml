@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/plagiarism_db
     username: postgres
-    password: postgres
+    password: root123
 
   jpa:
     hibernate:

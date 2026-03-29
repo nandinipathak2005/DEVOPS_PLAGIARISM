@@ -1,4 +1,4 @@
-package main.java.com.project.async;
+package com.project.async;
 
 public class AsyncJobService {
     

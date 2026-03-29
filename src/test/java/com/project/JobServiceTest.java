@@ -1,4 +1,4 @@
-package test.java.com.project;
+package com.project;
 
 public class JobServiceTest {
     
